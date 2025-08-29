@@ -109,7 +109,7 @@ namespace teleop_ackermann_joy
         void activation_callback(const std_msgs::msg::Bool::SharedPtr msg)
         {
             is_active_ = msg->data;
-            RCLCPP_INFO(this->get_logger(), "Teleop controller %s", is_active_ ? "ACTIVATED" : "DEACTIVATED");
+            RCLCPP_INFO(this->get_logger(), "Teleop Ackermann controller %s", is_active_ ? "ACTIVATED" : "DEACTIVATED");
 
             // If deactivated, publish a zero command for safety
             if (!is_active_)
