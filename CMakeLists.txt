@@ -6,6 +6,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(ackermann_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Add the executable
 add_executable(teleop_ackermann_joy_node src/teleop_ackermann_joy_node.cpp)
@@ -15,6 +16,7 @@ ament_target_dependencies(teleop_ackermann_joy_node
   rclcpp
   sensor_msgs
   ackermann_msgs
+  std_msgs
 )
 
 # Installation rules

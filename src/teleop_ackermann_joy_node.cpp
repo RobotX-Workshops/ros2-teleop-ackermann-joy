@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <cmath>
 #include <memory>
 
@@ -45,10 +46,15 @@ namespace teleop_ackermann_joy
             // Update configuration
             update_config();
 
+            // Initialize activation state (default to inactive for safety)
+            is_active_ = false;
+
             // Create publisher and subscriber (using fixed topic names for remapping)
             publisher_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>("/ackermann_cmd", 10);
             subscription_ = this->create_subscription<sensor_msgs::msg::Joy>(
                 "/joy", 10, std::bind(&TeleopAckermannJoy::joy_callback, this, std::placeholders::_1));
+            activation_subscription_ = this->create_subscription<std_msgs::msg::Bool>(
+                "/activate", 10, std::bind(&TeleopAckermannJoy::activation_callback, this, std::placeholders::_1));
 
             // Add parameter callback
             param_callback_handle_ = this->add_on_set_parameters_callback(
@@ -100,6 +106,24 @@ namespace teleop_ackermann_joy
             RCLCPP_INFO(this->get_logger(), "--------------------");
         }
 
+        void activation_callback(const std_msgs::msg::Bool::SharedPtr msg)
+        {
+            is_active_ = msg->data;
+            RCLCPP_INFO(this->get_logger(), "Teleop controller %s", is_active_ ? "ACTIVATED" : "DEACTIVATED");
+
+            // If deactivated, publish a zero command for safety
+            if (!is_active_)
+            {
+                auto ackermann_msg = std::make_unique<ackermann_msgs::msg::AckermannDriveStamped>();
+                ackermann_msg->header.stamp = this->get_clock()->now();
+                ackermann_msg->header.frame_id = "base_link";
+                ackermann_msg->drive.speed = 0.0;
+                ackermann_msg->drive.steering_angle = 0.0;
+                publisher_->publish(std::move(ackermann_msg));
+                RCLCPP_INFO(this->get_logger(), "Published zero command due to deactivation");
+            }
+        }
+
     private:
         void update_config()
         {
@@ -149,10 +173,10 @@ namespace teleop_ackermann_joy
                 }
             }
 
-            // Check if we should process commands (either no enable button required, or enable button is pressed)
-            bool should_process_commands = true;
+            // Check if we should process commands (must be active AND either no enable button required, or enable button is pressed)
+            bool should_process_commands = is_active_;
 
-            if (require_enable_button_)
+            if (is_active_ && require_enable_button_)
             {
                 // Enable button is required - check if it's pressed
                 if (msg->buttons.size() > enable_button_)
@@ -168,10 +192,15 @@ namespace teleop_ackermann_joy
                                 enable_button_, msg->buttons.size());
                 }
             }
+            else if (is_active_)
+            {
+                // No enable button required but node is active - always process commands
+                RCLCPP_DEBUG(this->get_logger(), "Enable button disabled - processing commands (node active)");
+            }
             else
             {
-                // No enable button required - always process commands
-                RCLCPP_DEBUG(this->get_logger(), "Enable button disabled - always processing commands");
+                // Node is not active - don't process commands
+                RCLCPP_DEBUG(this->get_logger(), "Node is not active - not processing commands");
             }
 
             if (should_process_commands)
@@ -314,12 +343,16 @@ namespace teleop_ackermann_joy
         // Member variables
         rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr publisher_;
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscription_;
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr activation_subscription_;
 
         // Parameter callback handle
         rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;
 
         // Timer for delayed parameter updates
         rclcpp::TimerBase::SharedPtr parameter_update_timer_;
+
+        // Activation state
+        bool is_active_;
 
         bool require_enable_button_;
         int enable_button_;
