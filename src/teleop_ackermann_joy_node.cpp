@@ -240,10 +240,12 @@ namespace teleop_ackermann_joy
                                     axis_reverse_trigger_, msg->axes.size());
                     }
 
-                    // Calculate combined throttle (forward - reverse, then divide by 2 to normalize)
-                    double combined_throttle = (forward_throttle - reverse_throttle) / 2.0;
-                    RCLCPP_DEBUG(this->get_logger(), "Combined throttle: %.3f (forward: %.3f - reverse: %.3f) / 2",
-                                 combined_throttle, forward_throttle, reverse_throttle);
+                    // Normalize triggers: raw 1.0 (released) -> 0.0, raw -1.0 (fully pressed) -> 1.0
+                    double forward_amount = (1.0 - forward_throttle) / 2.0;
+                    double reverse_amount = (1.0 - reverse_throttle) / 2.0;
+                    double combined_throttle = forward_amount - reverse_amount;
+                    RCLCPP_DEBUG(this->get_logger(), "Combined throttle: %.3f (forward: %.3f, reverse: %.3f)",
+                                 combined_throttle, forward_amount, reverse_amount);
 
                     if (std::abs(combined_throttle) > axis_dead_zone_)
                     {
