@@ -50,7 +50,7 @@ namespace teleop_ackermann_joy
             is_active_ = false;
 
             // Create publisher and subscriber (using fixed topic names for remapping)
-            publisher_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>("/ackermann_cmd", 10);
+            publisher_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>("/teleop/ackermann_cmd", 10);
             subscription_ = this->create_subscription<sensor_msgs::msg::Joy>(
                 "/joy", 10, std::bind(&TeleopAckermannJoy::joy_callback, this, std::placeholders::_1));
             activation_subscription_ = this->create_subscription<std_msgs::msg::Bool>(
