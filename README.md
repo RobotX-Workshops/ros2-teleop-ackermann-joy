@@ -47,7 +47,7 @@ ros2 run teleop_ackermann_joy teleop_ackermann_joy_node --ros-args --params-file
 | `axis_speed` | int | `1` | Axis index for speed (single-axis mode) |
 | `axis_forward_trigger` | int | `5` | Axis index for forward trigger (RT) |
 | `axis_reverse_trigger` | int | `4` | Axis index for reverse trigger (LT) |
-| `scale_speed` | double | `1.0` | Max speed in m/s |
+| `max_speed_ms` | double | `1.0` | Max speed in m/s |
 | `axis_steering` | int | `0` | Axis index for steering (left stick horizontal) |
 | `scale_steering` | double | `1.0` | Max steering angle in radians |
 | `invert_steering` | bool | `false` | Flip steering direction |

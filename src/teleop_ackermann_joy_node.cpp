@@ -15,7 +15,7 @@ static const std::string PARAM_USE_TRIGGER_MODE = "use_trigger_mode";
 static const std::string PARAM_AXIS_SPEED = "axis_speed";
 static const std::string PARAM_AXIS_FORWARD_TRIGGER = "axis_forward_trigger";
 static const std::string PARAM_AXIS_REVERSE_TRIGGER = "axis_reverse_trigger";
-static const std::string PARAM_SCALE_SPEED = "scale_speed";
+static const std::string PARAM_MAX_SPEED_MS = "max_speed_ms";
 static const std::string PARAM_AXIS_STEERING = "axis_steering";
 static const std::string PARAM_SCALE_STEERING = "scale_steering";
 static const std::string PARAM_INVERT_STEERING = "invert_steering";
@@ -37,7 +37,7 @@ public:
     this->declare_parameter<int>(PARAM_AXIS_SPEED, 1);
     this->declare_parameter<int>(PARAM_AXIS_FORWARD_TRIGGER, 5);
     this->declare_parameter<int>(PARAM_AXIS_REVERSE_TRIGGER, 4);
-    this->declare_parameter<double>(PARAM_SCALE_SPEED, 1.0);
+    this->declare_parameter<double>(PARAM_MAX_SPEED_MS, 1.0);
 
     // Steering parameters
     this->declare_parameter<int>(PARAM_AXIS_STEERING, 0);
@@ -91,12 +91,13 @@ public:
 
     if (use_trigger_mode_) {
       RCLCPP_INFO(
-        this->get_logger(), "Speed Control: DUAL TRIGGERS - Forward: %d, Reverse: %d, Scale: %.2f",
-        axis_forward_trigger_, axis_reverse_trigger_, scale_speed_);
+        this->get_logger(),
+        "Speed Control: DUAL TRIGGERS - Forward: %d, Reverse: %d, Max speed: %.2f m/s",
+        axis_forward_trigger_, axis_reverse_trigger_, max_speed_ms_);
     } else {
       RCLCPP_INFO(
-        this->get_logger(), "Speed Control: SINGLE AXIS - Axis: %d, Scale: %.2f", axis_speed_,
-        scale_speed_);
+        this->get_logger(), "Speed Control: SINGLE AXIS - Axis: %d, Max speed: %.2f m/s",
+        axis_speed_, max_speed_ms_);
     }
 
     RCLCPP_INFO(
@@ -139,7 +140,7 @@ private:
     axis_speed_ = this->get_parameter(PARAM_AXIS_SPEED).as_int();
     axis_forward_trigger_ = this->get_parameter(PARAM_AXIS_FORWARD_TRIGGER).as_int();
     axis_reverse_trigger_ = this->get_parameter(PARAM_AXIS_REVERSE_TRIGGER).as_int();
-    scale_speed_ = this->get_parameter(PARAM_SCALE_SPEED).as_double();
+    max_speed_ms_ = this->get_parameter(PARAM_MAX_SPEED_MS).as_double();
 
     // Steering parameters
     axis_steering_ = this->get_parameter(PARAM_AXIS_STEERING).as_int();
@@ -237,10 +238,10 @@ private:
           combined_throttle, forward_amount, reverse_amount);
 
         if (std::abs(combined_throttle) > axis_dead_zone_) {
-          ackermann_msg->drive.speed = combined_throttle * scale_speed_;
+          ackermann_msg->drive.speed = combined_throttle * max_speed_ms_;
           RCLCPP_DEBUG(
-            this->get_logger(), "Speed calculated: %.3f (combined: %.3f * scale: %.3f)",
-            ackermann_msg->drive.speed, combined_throttle, scale_speed_);
+            this->get_logger(), "Speed calculated: %.3f (combined: %.3f * max_speed_ms: %.3f)",
+            ackermann_msg->drive.speed, combined_throttle, max_speed_ms_);
         } else {
           ackermann_msg->drive.speed = 0.0;
           RCLCPP_DEBUG(this->get_logger(), "Speed set to 0.0 (within dead zone)");
@@ -254,10 +255,10 @@ private:
             raw_speed, axis_dead_zone_);
 
           if (std::abs(raw_speed) > axis_dead_zone_) {
-            ackermann_msg->drive.speed = raw_speed * scale_speed_;
+            ackermann_msg->drive.speed = raw_speed * max_speed_ms_;
             RCLCPP_DEBUG(
-              this->get_logger(), "Speed calculated: %.3f (raw: %.3f * scale: %.3f)",
-              ackermann_msg->drive.speed, raw_speed, scale_speed_);
+              this->get_logger(), "Speed calculated: %.3f (raw: %.3f * max_speed_ms: %.3f)",
+              ackermann_msg->drive.speed, raw_speed, max_speed_ms_);
           } else {
             ackermann_msg->drive.speed = 0.0;
             RCLCPP_DEBUG(this->get_logger(), "Speed set to 0.0 (within dead zone)");
@@ -342,7 +343,7 @@ private:
   int axis_speed_;
   int axis_forward_trigger_;
   int axis_reverse_trigger_;
-  double scale_speed_;
+  double max_speed_ms_;
 
   // Steering control variables
   int axis_steering_;
